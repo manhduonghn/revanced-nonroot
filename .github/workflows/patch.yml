@@ -1,5 +1,6 @@
 name: Patch Revanced 
 on:
+  push:
   workflow_dispatch:
     
 jobs:
@@ -13,6 +14,15 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@main  
+
+    - name: Cache Data
+      id: cache-patches-data
+      uses: actions/cache@main
+      with:
+        path: patches.txt
+        key: ${{ runner.os }}-patches-data-${{ github.run_id }}
+        restore-keys: |
+          ${{ runner.os }}-patches-data-
 
     - name: Patch Revanced
       run: bash revanced.sh
