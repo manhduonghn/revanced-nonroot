@@ -43,7 +43,7 @@ download_resources
 
 ls revanced-patches*.jar > current_file.txt
 
-if diff -q current_file.txt patches.txt > /dev/null; then
+if cmp -s current_file.txt patches.txt; then
     echo "No change, skipping patch..."
 else
     rm patches.txt > /dev/null 2>&1
