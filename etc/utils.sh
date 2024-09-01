@@ -60,8 +60,8 @@ apkmirror() {
                                                | pup -p --charset utf-8 ':parent-of(div:contains("'$arch'"))' \
                                                | pup -p --charset utf-8 ':parent-of(div:contains("'$dpi'")) a.accent_color attr{href}' \
                                                | sed 1q )"
-    url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 'a[href*="key="] attr{href}')"
-    url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 'a[href*="key="] attr{href}')"
+    url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 'a.downloadButton attr{href}')"
+    url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 'a#download-link attr{href}')"
     req $name-v$version.apk $url
 }
 
@@ -73,13 +73,11 @@ uptodown() {
     version=$(jq -r '.version' "$config_file")
     version="${version:-$(get_supported_version "$package")}"
     url="https://$name.en.uptodown.com/android/versions"
-    version="${version:-$(req - 2>/dev/null $url | grep -oP 'class="version">\K[^<]+' | get_latest_version)}"
-    url=$(req - $url | grep -B3 '"version">'$version'<' \
-                     | sed -n 's/.*data-url="\([^"]*\)".*/\1/p' \
-                     | sed -n '1p')
-    url="https://dw.uptodown.com/dwn/$(req - $url | grep 'id="detail-download-button"' -A2 \
-                                                  | sed -n 's/.*data-url="\([^"]*\)".*/\1/p' \
-                                                  | sed -n '1p')"
+    version="${version:-$(req - 2>/dev/null "$url" | pup 'div#versions-items-list > div span.version text{}' | get_latest_version)}"
+    url=$(req - $url | pup -p --charset utf-8 ':parent-of(span:contains("'$version'"))' \
+                     | pup -p --charset utf-8 'div[data-url]' attr{data-url} \
+                     | sed 1q)
+    url="https://dw.uptodown.com/dwn/$(req - "$url" | pup -p --charset utf-8 'button#detail-download-button attr{data-url}')"
     req $name-v$version.apk $url
 }
 
