@@ -54,12 +54,14 @@ apkmirror() {
 
     version="${version:-$(get_supported_version "$package")}"
     url="https://www.apkmirror.com/uploads/?appcategory=$name"
-    version="${version:-$(req - $url | get_apkmirror_version | get_latest_version )}"
+    version="${version:-$(req - $url | pup 'div.widget_appmanager_recentpostswidget h5 a.fontBlack text{}' | get_latest_version)}"
     url="https://www.apkmirror.com/apk/$org/$name/$name-${version//./-}-release"
-    url="https://www.apkmirror.com$(req - $url | grep '>'$dpi'<' -B15 | grep '>'$arch'<' -B13 | grep '>'$type'<' -B5 \
-                                               | sed -n 's/.*href="\([^"]*\)".*/\1/p;q')"
-    url="https://www.apkmirror.com$(req - $url | grep 'downloadButton' | sed -n 's/.*href="\([^"]*\)".*/\1/p;q')"
-    url="https://www.apkmirror.com$(req - $url | grep 'rel="nofollow"' | sed -n 's/.*href="\([^"]*\)".*/\1/g;s#amp;##g;p;q')"
+    url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 ':parent-of(:parent-of(span:contains("'$type'")))' \
+                                               | pup -p --charset utf-8 ':parent-of(div:contains("'$arch'"))' \
+                                               | pup -p --charset utf-8 ':parent-of(div:contains("'$dpi'")) a.accent_color attr{href}' \
+                                               | sed 1q )"
+    url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 'a[href*="key="] attr{href}')"
+    url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 'a[href*="key="] attr{href}')"
     req $name-v$version.apk $url
 }
 
@@ -79,7 +81,7 @@ uptodown() {
                                                   | sed -n 's/.*data-url="\([^"]*\)".*/\1/p' \
                                                   | sed -n '1p')"
     req $name-v$version.apk $url
-}
+
 
 # Tiktok not work because not available version supported 
 apkpure() {
@@ -89,10 +91,10 @@ apkpure() {
     version=$(jq -r '.version' "$config_file")
     url="https://apkpure.net/$name/$package/versions"
     version=$(req - 2>/dev/null $api | get_supported_version "$package")
-    version="${version:-$(req - "$url" | grep -oP 'data-dt-version="\K[^"]*' | sed 10q | get_latest_version)}"
+    version="${version:-$(req - $url | pup 'div.ver-item > div.ver-item-n text{}' | get_latest_version)}"
     url="https://apkpure.net/$name/$package/download/$version"
-    url=$(req - "$url" | grep 'Download APK' | sed -n 's/.*href="\([^"]*APK\/'$package'[^"]*\)".*/\1/p' | uniq)
-    req $name-v$version.apk $url
+    url=$(req - $url | pup -p --charset utf-8 'a#download_link attr{href}')
+    req $name-v$version.apk "$url"
 }
 
 # Apply patches with Include and Exclude Patches
