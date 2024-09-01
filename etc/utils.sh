@@ -81,7 +81,7 @@ uptodown() {
                                                   | sed -n 's/.*data-url="\([^"]*\)".*/\1/p' \
                                                   | sed -n '1p')"
     req $name-v$version.apk $url
-
+}
 
 # Tiktok not work because not available version supported 
 apkpure() {
