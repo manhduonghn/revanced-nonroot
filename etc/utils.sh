@@ -91,7 +91,7 @@ apkpure() {
     version=$(req - 2>/dev/null $api | get_supported_version "$package")
     version="${version:-$(req - $url | pup 'div.ver-item > div.ver-item-n text{}' | get_latest_version)}"
     url="https://apkpure.net/$name/$package/download/$version"
-    url=$(req - $url | pup -p --charset utf-8 'a#download_link attr{href}')
+    url=$(req - $url | pup -p --charset utf-8 'a-download-btn attr{href}')
     req $name-v$version.apk "$url"
 }
 
