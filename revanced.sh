@@ -3,16 +3,13 @@ source ./etc/utils.sh
 
 download_app() {
     app_name=$1
+    sources=("apkmirror" "uptodown" "apkpure")
 
-    if apkmirror "$app_name"; then
-        return 0
-    fi
-    if uptodown "$app_name"; then
-        return 0
-    fi
-    if apkpure "$app_name"; then
-        return 0
-    fi
+    for source in "${sources[@]}"; do
+        if $source "$app_name"; then
+            return 0
+        fi
+    done
     
     return 1
 }
