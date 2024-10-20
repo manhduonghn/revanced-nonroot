@@ -18,25 +18,12 @@ get_latest_version() {
     grep -Evi 'alpha|beta' | grep -oPi '\b\d+(\.\d+)+(?:\-\w+)?(?:\.\d+)?(?:\.\w+)?\b' | sort -ur | awk 'NR==1'
 }
 
-# Find max number
-max() {
-  max_value=$1
-  shift
-  for num in "$@"; do
-    if [ "$num" -gt "$max_value" ]; then
-      max_value=$num
-    fi
-  done
-  echo "$max_value"
-}
-
 # Read highest supported versions from Revanced 
 get_supported_version() {
     pkg_name="$1"
-    versions=$(jq -r '.. | objects | select(.name == "'$pkg_name'" and .versions != null) | .versions[]' patches.json)
-    max_version=$(max $versions)
-    echo "$max_version"
+    jq -r '.. | objects | select(.name == "'$pkg_name'" and .versions != null) | .versions[]' patches.json | sort -V | tail -n 1
 }
+
 # Download necessary resources to patch from Github latest release 
 download_resources() {
     for repo in revanced-patches revanced-cli revanced-integrations; do
