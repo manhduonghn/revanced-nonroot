@@ -53,6 +53,7 @@ apkmirror() {
     version=$(jq -r '.version' "$config_file")
 
     version="${version:-$(get_supported_version "$package")}"
+    echo "$version"
     url="https://www.apkmirror.com/uploads/?appcategory=$name"
     version="${version:-$(req - $url | pup 'div.widget_appmanager_recentpostswidget h5 a.fontBlack text{}' | get_latest_version)}"
     url="https://www.apkmirror.com/apk/$org/$name/$name-${version//./-}-release"
