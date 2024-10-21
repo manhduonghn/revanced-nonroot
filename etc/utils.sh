@@ -61,11 +61,11 @@ apkmirror() {
     package=$(jq -r '.package' "$config_file")
     version=$(jq -r '.version' "$config_file")
 
-    version="${version:-$(get_supported_version "$package")}"
-    echo $version
-    exit
+    #version="${version:-$(get_supported_version "$package")}"
     url="https://www.apkmirror.com/uploads/?appcategory=$name"
     version="${version:-$(req - $url | pup 'div.widget_appmanager_recentpostswidget h5 a.fontBlack text{}' | get_latest_version)}"
+    echo $version
+    exit
     url="https://www.apkmirror.com/apk/$org/$name/$name-${version//./-}-release"
     url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 ':parent-of(:parent-of(span:contains("'$type'")))' \
                                                | pup -p --charset utf-8 ':parent-of(div:contains("'$arch'"))' \
