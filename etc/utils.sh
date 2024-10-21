@@ -13,9 +13,18 @@ req() {
          --keep-session-cookies --timeout=30 -nv -O "$@"
 }
 
+# Find max version
+max() {
+	local max=0
+	while read -r v || [ -n "$v" ]; do
+		if [[ ${v//[!0-9]/} -gt ${max//[!0-9]/} ]]; then max=$v; fi
+	done
+	if [[ $max = 0 ]]; then echo ""; else echo "$max"; fi
+}
+
 # Get largest version (Just compatible with my way of getting versions code)
 get_latest_version() {
-    grep -Evi 'alpha|beta' | grep -oPi '\b\d+(\.\d+)+(?:\-\w+)?(?:\.\d+)?(?:\.\w+)?\b' | sort -ur | awk 'NR==1'
+    grep -Evi 'alpha|beta' | grep -oPi '\b\d+(\.\d+)+(?:\-\w+)?(?:\.\d+)?(?:\.\w+)?\b' | max
 }
 
 # Read highest supported versions from Revanced 
@@ -53,6 +62,8 @@ apkmirror() {
     version=$(jq -r '.version' "$config_file")
 
     version="${version:-$(get_supported_version "$package")}"
+    echo $version
+    exit
     url="https://www.apkmirror.com/uploads/?appcategory=$name"
     version="${version:-$(req - $url | pup 'div.widget_appmanager_recentpostswidget h5 a.fontBlack text{}' | get_latest_version)}"
     url="https://www.apkmirror.com/apk/$org/$name/$name-${version//./-}-release"
