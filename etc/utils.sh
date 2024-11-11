@@ -29,13 +29,15 @@ get_latest_version() {
 
 # Read highest supported versions from Revanced 
 get_supported_version() {
-    pkg_name="$1"
-    jq -r '.. | objects | select(.name == "'$pkg_name'" and .versions != null) | .versions[]' patches.json | max
+    package_name=$1
+    output=$(java -jar revanced-cli*.jar list-versions -f "$package_name" patch*.rvp)
+    version=$(echo "$output" | tail -n +3 | sed 's/ (.*)//' | grep -v -w "Any" | max | xargs)
+    echo "$version"
 }
 
 # Download necessary resources to patch from Github latest release 
 download_resources() {
-    for repo in revanced-patches revanced-cli revanced-integrations; do
+    for repo in revanced-patches revanced-cli ; do
         githubApiUrl="https://api.github.com/repos/revanced/$repo/releases/latest"
         page=$(req - 2>/dev/null $githubApiUrl)
         assetUrls=$(echo $page | jq -r '.assets[] | select(.name | endswith(".asc") | not) | "\(.browser_download_url) \(.name)"')
@@ -114,8 +116,8 @@ apply_patches() {
     for line in "${lines[@]}"; do
         if [[ -n "$line" && ( ${line:0:1} == "+" || ${line:0:1} == "-" ) ]]; then
             patch_name=$(sed -e 's/^[+|-] *//;s/ *$//' <<< "$line") 
-            [[ ${line:0:1} == "+" ]] && includePatches+=("--include" "$patch_name")
-            [[ ${line:0:1} == "-" ]] && excludePatches+=("--exclude" "$patch_name")
+            [[ ${line:0:1} == "+" ]] && includePatches+=("-e" "$patch_name")
+            [[ ${line:0:1} == "-" ]] && excludePatches+=("-d" "$patch_name")
         fi
     done
     
@@ -124,8 +126,7 @@ apply_patches() {
     
     # Apply patches using Revanced tools
     java -jar revanced-cli*.jar patch \
-        --merge revanced-integrations*.apk \
-        --patch-bundle revanced-patches*.jar \
+        --patches patches*.rvp \
         "${excludePatches[@]}" "${includePatches[@]}" \
         --out "$name-revanced-v$version.apk" \
         "$name-v$version.apk"
@@ -140,7 +141,6 @@ create_body_release() {
 
 ## Build Tools:
 - **ReVanced Patches:** v$patchver
-- **ReVanced Integrations:** v$integrationsver
 - **ReVanced CLI:** v$cliver
 
 ## Note:
@@ -165,8 +165,7 @@ create_github_release() {
     uploadRelease="https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases"
     apkFilePath=$(find . -type f -name "$name-revanced*.apk")
     apkFileName=$(basename "$apkFilePath")
-    patchver=$(ls -1 revanced-patches*.jar | grep -oP '\d+(\.\d+)+')
-    integrationsver=$(ls -1 revanced-integrations*.apk | grep -oP '\d+(\.\d+)+')
+    patchver=$(ls -1 patches*.rvp | grep -oP '\d+(\.\d+)+')
     cliver=$(ls -1 revanced-cli*.jar | grep -oP '\d+(\.\d+)+')
     tagName="v$patchver"
 
