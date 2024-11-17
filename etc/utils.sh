@@ -100,7 +100,7 @@ uptodown() {
         version_url=$(echo "$json" | jq -r --arg version "$version" 'map(select(.version == $version and .kindFile == "apk")) | .[0] | .versionURL')
         if [ -n "$version_url" ]; then
             download_url=$(req - "$version_url" | grep -oP '(?<=data-url=")[^"]+')
-            [ -n "$download_url" ] && req "youtube-v$version.apk" "https://dw.uptodown.com/dwn/$download_url" && break
+            [ -n "$download_url" ] && req "$name-v$version.apk" "https://dw.uptodown.com/dwn/$download_url" && break
         fi
         
         # Check if all versions are less than target version
