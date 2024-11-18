@@ -91,14 +91,14 @@ uptodown() {
 
     page=1
     while :; do
-        json=$(req - 2>/dev/null "https://$name.en.uptodown.com/android/apps/$data_code/versions/$page" | jq -r '.data')
+        json=$(req - "https://$name.en.uptodown.com/android/apps/$data_code/versions/$page" | jq -r '.data')
         
         # Exit if no valid JSON or no more pages
         [ -z "$json" ] && break
         
         # Search for version URL
-        version_url=$(echo "$json" | jq -r --arg version "$version" '[.[] | select(.version == $version and .kindFile == "apk")][0].versionURL')
-	if [ -n "$version_url" ] && [ "$version_url" != "null" ]; then
+        version_url=$(echo "$json" | jq -r --arg version "$version" '[.[] | select(.version == $version and .kindFile == "apk")][0].versionURL // empty')
+        if [ -n "$version_url" ]; then
             download_url=$(req - "$version_url" | grep -oP '(?<=data-url=")[^"]+')
             [ -n "$download_url" ] && req "$name-v$version.apk" "https://dw.uptodown.com/dwn/$download_url" && break
         fi
@@ -111,7 +111,6 @@ uptodown() {
         page=$((page + 1))
     done
 }
-
 # Tiktok not work because not available version supported 
 apkpure() {
     config_file="./apps/apkpure/$1.json"
