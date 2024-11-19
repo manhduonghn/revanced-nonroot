@@ -47,9 +47,33 @@ download_resources() {
     done
 }
 
+# Filtered key words to extract link
+extract_filtered_links() {
+    local dpi="$1" arch="$2" type="$3"
+    awk -v dpi="$dpi" -v arch="$arch" -v type="$type" '
+    BEGIN { block = ""; link = ""; found_dpi = found_arch = found_type = printed = 0 }
+    /<a class="accent_color"/ {
+        if (printed) next
+        if (block != "" && link != "" && found_dpi && found_arch && found_type && !printed) { 
+            print link; printed = 1 
+        }
+        block = $0; found_dpi = found_arch = found_type = 0
+        if (match($0, /href="([^"]+)"/, arr)) link = arr[1]
+    }
+    { if (!printed) block = block "\n" $0 }
+    /table-cell/ && $0 ~ dpi { found_dpi = 1 }
+    /table-cell/ && $0 ~ arch { found_arch = 1 }
+    /apkm-badge/ && $0 ~ (">" type "</span>") { found_type = 1 }
+    END {
+        if (block != "" && link != "" && found_dpi && found_arch && found_type && !printed)
+            print link
+    }
+    '
+}
+
 # Get some versions of application on APKmirror pages 
 get_apkmirror_version() {
-    grep 'fontBlack' | sed -n 's/.*>\(.*\)<\/a> <\/h5>.*/\1/p' | sed 20q
+    grep -oP 'class="fontBlack"[^>]*href="[^"]+"\s*>\K[^<]+' | sed 20q | awk '{print $NF}'
 }
 
 # Best but sometimes not work because APKmirror protection 
@@ -65,14 +89,11 @@ apkmirror() {
 
     version="${version:-$(get_supported_version "$package")}"
     url="https://www.apkmirror.com/uploads/?appcategory=$name"
-    version="${version:-$(req - $url | pup 'div.widget_appmanager_recentpostswidget h5 a.fontBlack text{}' | get_latest_version)}"
+    version="${version:-$(req - $url | get_apkmirror_version | get_latest_version)}"
     url="https://www.apkmirror.com/apk/$org/$name/$name-${version//./-}-release"
-    url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 ':parent-of(:parent-of(span:contains("'$type'")))' \
-                                               | pup -p --charset utf-8 ':parent-of(div:contains("'$arch'"))' \
-                                               | pup -p --charset utf-8 ':parent-of(div:contains("'$dpi'")) a.accent_color attr{href}' \
-                                               | sed 1q )"
-    url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 'a.downloadButton attr{href}')"
-    url="https://www.apkmirror.com$(req - $url | pup -p --charset utf-8 'a#download-link attr{href}')"
+    url="https://www.apkmirror.com$(req - "$url" | extract_filtered_links "$dpi" "$arch" "$type")"
+    url="https://www.apkmirror.com$(req - "$url" | grep -oP 'class="[^"]*downloadButton[^"]*"[^>]*href="\K[^"]+')"
+    url="https://www.apkmirror.com$(req - "$url" | grep -oP 'id="download-link"[^>]*href="\K[^"]+')"
     req $name-v$version.apk $url
 }
 
